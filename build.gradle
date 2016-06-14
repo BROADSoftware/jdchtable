@@ -1,0 +1,49 @@
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+repositories {
+    jcenter()
+}
+
+
+// Refer to https://issues.gradle.org/browse/GRADLE-1010
+eclipseJdt << {
+	File f = file('.settings/org.eclipse.core.resources.prefs')
+   	f.write('eclipse.preferences.version=1\n')
+   	f.append('encoding/<project>=UTF-8')
+}
+	
+
+
+// # NB: Hadoop is pulled by hbase, but we ensure version is the targeted one
+dependencies {
+	compile "org.slf4j:slf4j-api:$sl4jApiVersion"
+	compile "org.slf4j:slf4j-log4j12:$sl4jLog4jVersion"
+	compile "log4j:log4j:$log4jVersion"
+ 	compile "net.sf.jopt-simple:jopt-simple:$joptVersion"
+    compile "org.apache.hbase:hbase-client:$hbaseVersion"
+    compile "org.apache.hadoop:hadoop-mapreduce-client-core:$hadoopVersion"		
+    compile "org.apache.hadoop:hadoop-common:$hadoopVersion"		
+    compile "org.apache.hadoop:hadoop-auth:$hadoopVersion"		
+    testCompile 'junit:junit:4.12'
+}
+
+
+jar {
+	exclude("log4j.xml")
+	rename("log4j-jar.xml", "log4j.xml")
+}
+
+//create a single Jar with all dependencies
+task fatJar(type: Jar) {
+	manifest {
+        attributes 'Implementation-Title': 'jdchtable', 
+        	'Implementation-Version': version,
+        	'Main-Class': 'com.kappaware.jdchtable.Main'
+    }
+    baseName = project.name
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
+
