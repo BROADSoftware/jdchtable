@@ -15,7 +15,6 @@ eclipseJdt << {
 }
 	
 
-
 // # NB: Hadoop is pulled by hbase, but we ensure version is the targeted one
 dependencies {
 	compile "org.slf4j:slf4j-api:$sl4jApiVersion"
@@ -26,6 +25,7 @@ dependencies {
     compile "org.apache.hadoop:hadoop-mapreduce-client-core:$hadoopVersion"		
     compile "org.apache.hadoop:hadoop-common:$hadoopVersion"		
     compile "org.apache.hadoop:hadoop-auth:$hadoopVersion"		
+    compile "com.esotericsoftware.yamlbeans:yamlbeans:$yamlbeansVersion"
     testCompile 'junit:junit:4.12'
 }
 
