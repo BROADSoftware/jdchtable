@@ -4,15 +4,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.NamespaceDescriptor;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
@@ -22,26 +16,25 @@ import org.slf4j.LoggerFactory;
 import com.esotericsoftware.yamlbeans.YamlException;
 import com.esotericsoftware.yamlbeans.YamlReader;
 import com.kappaware.jdchtable.config.JdcConfiguration;
-import com.kappaware.jdchtable.HDescription.Namespace;
-import com.kappaware.jdchtable.HDescription.State;
 import com.kappaware.jdchtable.config.ConfigurationException;
 import com.kappaware.jdchtable.config.JdcConfigurationImpl;
 import com.kappaware.jdchtable.config.Parameters;
 
 public class Main {
 	static Logger log = LoggerFactory.getLogger(Main.class);
+	
 
-	static public void main(String[] argv) throws IOException  {
+	static public void main(String[] argv) throws IOException {
 		try {
 			main2(argv);
-		} catch(ConfigurationException | DescriptionException | FileNotFoundException | YamlException  e) {
+			System.exit(0);
+		} catch (ConfigurationException | DescriptionException | FileNotFoundException | YamlException e) {
 			log.error(e.getMessage());
 			System.err.println("ERROR: " + e.getMessage());
+			System.exit(1);
 		}
 	}
-	
-	
-	
+
 	static public void main2(String[] argv) throws ConfigurationException, DescriptionException, IOException {
 		log.info("jdchtable start");
 
@@ -52,13 +45,13 @@ public class Main {
 		if (!file.canRead()) {
 			throw new ConfigurationException(String.format("Unable to open '%s' for reading", file.getAbsolutePath()));
 		}
-		YamlReader yamlReader = new YamlReader(new FileReader(file), HDescription.getYamlConfig());
-		HDescription hDescription = yamlReader.read(HDescription.class);
+		YamlReader yamlReader = new YamlReader(new FileReader(file), Description.getYamlConfig());
+		Description description = yamlReader.read(Description.class);
 		if (jdcConfiguration.getZookeeper() != null) {
-			hDescription.zookeeper = jdcConfiguration.getZookeeper(); // Override the value in file
+			description.zookeeper = jdcConfiguration.getZookeeper(); // Override the value in file
 		}
 		if (jdcConfiguration.getZnodeParent() != null) {
-			hDescription.znodeParent = jdcConfiguration.getZnodeParent(); // Override the value in file
+			description.znodeParent = jdcConfiguration.getZnodeParent(); // Override the value in file
 		}
 
 		// The following will remove the message: 2014-06-14 01:38:59.359 java[993:1903] Unable to load realm info from SCDynamicStore
@@ -67,68 +60,24 @@ public class Main {
 		//System.setProperty("java.security.krb5.conf", "/dev/null");
 
 		Configuration config = HBaseConfiguration.create();
-		config.set("hbase.zookeeper.quorum", hDescription.zookeeper);
-		if(hDescription.znodeParent != null) {
-			config.set("zookeeper.znode.parent", hDescription.znodeParent);
+		config.set("hbase.zookeeper.quorum", description.zookeeper);
+		if (description.znodeParent != null) {
+			config.set("zookeeper.znode.parent", description.znodeParent);
 		}
 
-		int nbrModif = 0;
 		Admin hbAdmin = null;
 		try {
 			Connection connection = ConnectionFactory.createConnection(config);
 			hbAdmin = connection.getAdmin();
-			
-			Map<String, NamespaceDescriptor> nsDescByName = new HashMap<String, NamespaceDescriptor>();
-			Set<String> namespaceToDelete = new HashSet<String>();
-			NamespaceDescriptor[] namespaceDescriptors = hbAdmin.listNamespaceDescriptors();
-			for (NamespaceDescriptor ndesc : namespaceDescriptors) {
-				nsDescByName.put(ndesc.getName(), ndesc);
-				//System.out.print(String.format("Namespace: %s\n", ndesc.getName()));
-			}
-			// A loop in namespace to:
-			// - Create namespace when needed
-			// - Mark namespace to delete
-			if( hDescription.namespaces == null) {
-				throw new DescriptionException("Invalid description: namespaces list must be defined ");
-			}
-			for(Namespace ns : hDescription.namespaces) {
-				if(ns.name == null) {
-					throw new DescriptionException("Invalid description: Every namespace must have a 'name' attribute");
-				}
-				if(ns.state != null && ns.state == State.absent) {
-					if(nsDescByName.containsKey(ns.name)) {
-						namespaceToDelete.add(ns.name);
-					}
-				} else {
-					if(!nsDescByName.containsKey(ns.name)) {
-						log.info(String.format("Will create namespace '%s'", ns.name));
-						nbrModif++;
-						hbAdmin.createNamespace(NamespaceDescriptor.create(ns.name).build());
-					}
-				}
-			}
-			
-			
-
-			// Delete namespace marked for deletion
-			for(String nspace : namespaceToDelete) {
-				log.info(String.format("Will delete namespace '%s'", nspace));
-				nbrModif++;
-				hbAdmin.deleteNamespace(nspace);
-			}
-			
-			
-			HTableDescriptor[] tda = hbAdmin.listTables();
-			for (HTableDescriptor hdesc : tda) {
-				System.out.print(String.format("Table: %s\n", hdesc.getNameAsString()));
-			}
-			hbAdmin.close();
-			System.out.println(String.format("jdchtable: %s modification(s)", nbrModif));
+			Engine engine = new Engine(hbAdmin, description);
+			engine.run();
+		
 		} finally {
-			if(hbAdmin != null) {
+			if (hbAdmin != null) {
 				hbAdmin.close();
 			}
 		}
 	}
+
 
 }

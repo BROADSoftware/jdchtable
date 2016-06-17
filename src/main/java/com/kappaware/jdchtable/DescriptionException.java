@@ -7,4 +7,8 @@ public class DescriptionException extends Exception {
 		super(m);
 	}
 
+	public DescriptionException(String m, Exception e) {
+		super(m, e);
+	}
+
 }
