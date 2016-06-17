@@ -1,5 +1,7 @@
 package com.kappaware.jdchtable;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,12 +19,13 @@ public class Description {
 	static final String NAME = "name";
 	static final String STATE = "state";
 	static final String COLUMN_FAMILIES = "columnFamilies";
+	static final String PRESPLIT = "presplit";
 
 	static YamlConfig yamlConfig = new YamlConfig();
 	static {
 		yamlConfig.setPropertyElementType(Description.class, "namespaces", Namespace.class);
 		yamlConfig.setPropertyElementType(Namespace.class, "tables", Table.class);
-		//yamlConfig.setPropertyElementType(Table.class, "columnFamilies", ColumnFamily.class);
+		//yamlConfig.setPropertyElementType(Table.class, "presplit", Presplit.class);
 		yamlConfig.writeConfig.setWriteRootTags(false);
 		yamlConfig.writeConfig.setWriteRootElementTags(false);
 	}
@@ -46,6 +49,7 @@ public class Description {
 		private TableName name;
 		private State state;
 		private List<ColumnFamily> columnFamilies = new Vector<ColumnFamily>();
+		public Presplit presplit;
 
 		/**
 		 * YamlParser set the value in the base HashMap instead of explicit property. So, we must transfer it to specific property. This will allow:
@@ -72,12 +76,17 @@ public class Description {
 					if (!(cf instanceof Map<?, ?>)) {
 						throw new DescriptionException(String.format("Table %s: columnFamilies list must contains one or several map. (as: - name: xxxxx)", this.name.toString()));
 					}
-					ColumnFamily columnFamily = new ColumnFamily((Map<String,Object>)cf);
+					ColumnFamily columnFamily = new ColumnFamily((Map<String, Object>) cf);
 					columnFamily.polish();
 					this.columnFamilies.add(columnFamily);
 				}
 			}
 			this.remove(COLUMN_FAMILIES);
+			this.presplit = (Presplit) this.get(PRESPLIT);
+			if (this.presplit != null) {
+				this.presplit.polish(this.name.toString());
+			}
+			this.remove(PRESPLIT);
 		}
 
 		public TableName getName() {
@@ -92,6 +101,26 @@ public class Description {
 			return columnFamilies;
 		}
 
+	}
+
+	static public class Presplit {
+		public List<BigDecimal> keysAsNumber;
+		public List<String> keysAsString;
+		public BigDecimal startKey;
+		public BigDecimal endKey;
+		public Integer numRegion;
+
+		void polish(String tableName) throws DescriptionException {
+			if (this.keysAsNumber != null && (this.keysAsString != null || this.startKey != null || this.endKey != null || this.numRegion != null)) {
+				throw new DescriptionException(String.format("keysAsNumber property is exclusive (Table %s)", tableName));
+			}
+			if (this.keysAsString != null && (this.keysAsNumber != null || this.startKey != null || this.endKey != null || this.numRegion != null)) {
+				throw new DescriptionException(String.format("keysAsString property is exclusive (Table %s)", tableName));
+			}
+			if (this.startKey == null || this.endKey == null || this.numRegion == null) {
+				throw new DescriptionException(String.format("startKey, endKey and numRegion must be defined together (Table %s)", tableName));
+			}
+		}
 	}
 
 	/*

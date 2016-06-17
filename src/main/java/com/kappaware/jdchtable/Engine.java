@@ -11,6 +11,7 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.NamespaceDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,13 +29,12 @@ public class Engine {
 	private Admin hbAdmin;
 	private Description description;
 	private int nbrModif = 0;
-	
+
 	Engine(Admin hbAdmin, Description description) {
 		this.hbAdmin = hbAdmin;
 		this.description = description;
 	}
 
-	
 	void run() throws IOException, DescriptionException {
 		Map<String, NamespaceDescriptor> nsDescByName = new HashMap<String, NamespaceDescriptor>();
 		Set<String> namespaceToDelete = new HashSet<String>();
@@ -69,15 +69,12 @@ public class Engine {
 			}
 		}
 
-		HTableDescriptor[] tda = hbAdmin.listTables();
 		Map<TableName, HTableDescriptor> hTableDescriptorByName = new HashMap<TableName, HTableDescriptor>();
-		for (HTableDescriptor hdesc : tda) {
+		for (HTableDescriptor hdesc : hbAdmin.listTables()) {
 			log.debug(String.format("Found table '%s'", hdesc.getTableName().toString()));
 			hTableDescriptorByName.put(hdesc.getTableName(), hdesc);
 		}
-		
-		
-		
+
 		for (Namespace ns : description.namespaces) {
 			if (ns.tables != null) {
 				for (Table table : ns.tables) {
@@ -100,6 +97,15 @@ public class Engine {
 
 		// Delete namespace marked for deletion
 		for (String nspace : namespaceToDelete) {
+			Set<String> hdl = new HashSet<String>();
+			for (HTableDescriptor hdesc : hbAdmin.listTables()) {
+				if (nspace.equals(hdesc.getTableName().getNamespaceAsString())) {
+					hdl.add(hdesc.getTableName().getQualifierAsString());
+				}
+			}
+			if (hdl.size() > 0) {
+				throw new DescriptionException(String.format("Unable to delete namespace '%s'. There is still existing table(s): %s", nspace, hdl.toString()));
+			}
 			log.info(String.format("Will delete namespace '%s'", nspace));
 			nbrModif++;
 			hbAdmin.deleteNamespace(nspace);
@@ -107,11 +113,14 @@ public class Engine {
 		System.out.println(String.format("jdchtable: %s modification(s)", nbrModif));
 
 	}
-	
 
-	private void deleteTable(Table table) {
-		// TODO Auto-generated method stub
-
+	private void deleteTable(Table table) throws IOException {
+		log.info(String.format("Will delete table '%s'", table.getName().toString()));
+		if (this.hbAdmin.isTableEnabled(table.getName())) {
+			this.hbAdmin.disableTable(table.getName());
+		}
+		this.nbrModif++;
+		this.hbAdmin.deleteTable(table.getName());
 	}
 
 	private void adjustTable(HTableDescriptor hdesc, Table table) {
@@ -124,14 +133,35 @@ public class Engine {
 		for (String propertyName : table.keySet()) {
 			this.nbrModif += HTableDescriptorBeanHelper.set(tDesc, propertyName, table.get(propertyName));
 		}
-		for(ColumnFamily cf : table.getColumnFamilies()) {
+		for (ColumnFamily cf : table.getColumnFamilies()) {
 			HColumnDescriptor cfDesc = new HColumnDescriptor(cf.getName());
 			for (String propertyName : cf.keySet()) {
 				this.nbrModif += HColumnDescriptorBeanHelper.set(cfDesc, propertyName, cf.get(propertyName));
 			}
 			tDesc.addFamily(cfDesc);
 		}
-		this.hbAdmin.createTable(tDesc);
+		log.info(String.format("Will create table '%s' with %d column familly(ies)", table.getName().toString(), table.getColumnFamilies().size()));
+		if (table.presplit != null) {
+			if (table.presplit.keysAsString != null) {
+				int size = table.presplit.keysAsString.size();
+				byte[][] splitKeys = new byte[size][];
+				for (int i = 0; i < size; i++) {
+					splitKeys[i] = Bytes.toBytes(table.presplit.keysAsString.get(i));
+				}
+				this.hbAdmin.createTable(tDesc, splitKeys);
+			} else if (table.presplit.keysAsNumber != null) {
+				int size = table.presplit.keysAsNumber.size();
+				byte[][] splitKeys = new byte[size][];
+				for (int i = 0; i < size; i++) {
+					splitKeys[i] = Bytes.toBytes(table.presplit.keysAsNumber.get(i));
+				}
+				this.hbAdmin.createTable(tDesc, splitKeys);
+			} else {
+				this.hbAdmin.createTable(tDesc, Bytes.toBytes(table.presplit.startKey), Bytes.toBytes(table.presplit.endKey), table.presplit.numRegion);
+			}
+		} else {
+			this.hbAdmin.createTable(tDesc);
+		}
 	}
-	
+
 }

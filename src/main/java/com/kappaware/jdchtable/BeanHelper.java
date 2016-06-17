@@ -9,7 +9,6 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.hadoop.hbase.HTableDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +29,7 @@ public class BeanHelper {
 			throw new RuntimeException(String.format("Unable to introspect class '%s'", beanClass.getCanonicalName()), e);
 		}
 		for (PropertyDescriptor pd : info.getPropertyDescriptors()) {
-			log.debug(String.format("Class '%s': Find property '%s' of type '%s'", this.beanClass.getCanonicalName(), pd.getName(), pd.getPropertyType().getCanonicalName()));
+			//log.debug(String.format("Class '%s': Find property '%s' of type '%s'", this.beanClass.getCanonicalName(), pd.getName(), pd.getPropertyType().getCanonicalName()));
 			this.propertyDescriptorByPoperty.put(pd.getName(), pd);
 		}
 	}
