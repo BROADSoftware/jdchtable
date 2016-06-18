@@ -1,3 +1,23 @@
+/*
+ * Copyright (C) 2016 BROADSoftware
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+plugins {
+  id 'nebula.ospackage' version '3.4.0'
+}
+
 
 apply plugin: 'java'
 apply plugin: 'eclipse'
@@ -6,6 +26,7 @@ repositories {
     jcenter()
 }
 
+defaultTasks 'all'
 
 // Refer to https://issues.gradle.org/browse/GRADLE-1010
 eclipseJdt << {
@@ -42,8 +63,69 @@ task fatJar(type: Jar) {
         	'Implementation-Version': version,
         	'Main-Class': 'com.kappaware.jdchtable.Main'
     }
-    baseName = project.name
+    baseName = fatJarBaseName
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     with jar
 }
+
+
+task rpm(type: Rpm) {
+	summary 'HBase table creation tool'
+	packageName rpmBaseName
+	version versionForRpm
+	arch NOARCH
+	vendor 'BROADSoftware'
+	license 'Apache 2.0'
+	os LINUX
+	release '1'
+	packageDescription 'jdchbase is an HBase admin tool allowing idempotency on table definition.'
+    
+   	from(fatJar.outputs.files) {
+	    into '/opt/jdchtable'
+	    user 'root'
+		group 'root'
+		//rename "${fatJarBaseName}(.+).jar", "${fatJarBaseName}.jar"
+	    fileMode 0644
+    }
+    
+   	from('scripts/packages/jdchtable') { into '/usr/bin'; user 'root'; group 'root'; fileMode 0755  }
+   	from('scripts/packages/log4j.xml') { into '/etc/jdchtable'; user 'root'; group 'root'; fileMode 0644  }
+   	from('scripts/packages/setenv.sh') { into '/etc/jdchtable'; user 'root'; group 'root'; fileMode 0644    }
+    
+}
+
+List variations = [ 
+	[ name: "hdp24", hbaseVersion: "1.1.2", hadoopVersion: "2.7.1"  ],	
+	[ name: "cdh552", hbaseVersion: "1.0.0", hadoopVersion: "2.6.0" ]
+]
+	
+
+for (cf in variations) {
+	tasks.create(name: "fatJar_${cf.name}", type: GradleBuild) {
+    	startParameter = project.getGradle().getStartParameter().newInstance()
+	  	startParameter.projectProperties += [hbaseVersion: "${cf.hbaseVersion}"]
+	  	startParameter.projectProperties += [hadoopVersion: "${cf.hadoopVersion}"]
+	  	startParameter.projectProperties += [fatJarBaseName: "jdchtable_${cf.name}"]
+	  	//println startParameter.projectProperties
+	    tasks = ['fatJar','eclipse']
+	}
+
+	tasks.create(name: "rpm_${cf.name}", type: GradleBuild) {
+    startParameter = project.getGradle().getStartParameter().newInstance()
+	  	startParameter.projectProperties += [hbaseVersion: "${cf.hbaseVersion}"]
+	  	startParameter.projectProperties += [hadoopVersion: "${cf.hadoopVersion}"]
+	  	startParameter.projectProperties += [fatJarBaseName: "jdchtable_${cf.name}"]
+	  	startParameter.projectProperties += [rpmBaseName: "jdchtable_${cf.name}"]
+  		//println startParameter.projectProperties
+    	tasks = ['rpm']
+	}
+}
+
+task all(type: GradleBuild) {
+  tasks =  [
+  	'rpm_hdp24',
+  	'rpm_cdh552'
+  ]
+}
+
 
