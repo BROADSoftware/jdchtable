@@ -12,6 +12,7 @@ import org.apache.hadoop.hbase.NamespaceDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +36,7 @@ public class Engine {
 		this.description = description;
 	}
 
-	void run() throws IOException, DescriptionException {
+	void run() throws IOException, DescriptionException, InterruptedException {
 		Map<String, NamespaceDescriptor> nsDescByName = new HashMap<String, NamespaceDescriptor>();
 		Set<String> namespaceToDelete = new HashSet<String>();
 		NamespaceDescriptor[] namespaceDescriptors = hbAdmin.listNamespaceDescriptors();
@@ -77,15 +78,19 @@ public class Engine {
 
 		for (Namespace ns : description.namespaces) {
 			if (ns.tables != null) {
+				Set<String> tableNames = new HashSet<String>();
 				for (Table table : ns.tables) {
-					table.polish(ns.name);
-					HTableDescriptor hdesc = hTableDescriptorByName.get(table.getName());
+					if (tableNames.contains(table.name)) {
+						throw new DescriptionException(String.format("Table '%s' is defined twice in namespace '%s'", table.name, ns.name));
+					}
+					tableNames.add(table.name);
+					HTableDescriptor hdesc = hTableDescriptorByName.get(table.tableName);
 					if (hdesc == null) {
-						if (table.getState() == State.present) {
+						if (table.state == State.present) {
 							createTable(table);
 						}
 					} else {
-						if (table.getState() == State.present) {
+						if (table.state == State.present) {
 							adjustTable(hdesc, table);
 						} else {
 							deleteTable(table);
@@ -115,32 +120,109 @@ public class Engine {
 	}
 
 	private void deleteTable(Table table) throws IOException {
-		log.info(String.format("Will delete table '%s'", table.getName().toString()));
-		if (this.hbAdmin.isTableEnabled(table.getName())) {
-			this.hbAdmin.disableTable(table.getName());
+		log.info(String.format("Will delete table '%s'", table.tableName.toString()));
+		if (this.hbAdmin.isTableEnabled(table.tableName)) {
+			this.hbAdmin.disableTable(table.tableName);
 		}
 		this.nbrModif++;
-		this.hbAdmin.deleteTable(table.getName());
+		this.hbAdmin.deleteTable(table.tableName);
 	}
 
-	private void adjustTable(HTableDescriptor hdesc, Table table) {
-		// TODO Auto-generated method stub
+	private void adjustTable(HTableDescriptor tDesc, Table table) throws DescriptionException, IOException, InterruptedException {
+		int initialNbrModif = this.nbrModif;
+		if (table.properties != null) {
+			for (String propertyName : table.properties.keySet()) {
+				this.nbrModif += HTableDescriptorBeanHelper.set(tDesc, propertyName, table.properties.get(propertyName));
+			}
+		}
+		Map<String, HColumnDescriptor> hColumnDescriptorByName = new HashMap<String, HColumnDescriptor>();
+		for (HColumnDescriptor cd : tDesc.getColumnFamilies()) {
+			hColumnDescriptorByName.put(cd.getNameAsString(), cd);
+		}
+		for (ColumnFamily cf : table.columnFamilies) {
+			HColumnDescriptor cd = hColumnDescriptorByName.get(cf.name);
+			if (cd == null) {
+				if (cf.state == State.present) {
+					log.info(String.format("Will add column family %s on table %s", cf.name, table.tableName.toString()));
+					tDesc.addFamily(createColumnFamily(cf));
+					this.nbrModif++;
+				} // Else, nothing to do
+			} else {
+				if (cf.state == State.present) {
+					adjustColumnFamily(cd, cf);
+				} else {
+					log.info(String.format("Will remove column family %s of table %s", cf.name, table.tableName.toString()));
+					tDesc.removeFamily(Bytes.toBytes(cf.name));
+					this.nbrModif++;
+				}
+				hColumnDescriptorByName.remove(cf.name); // To mark as handled
+			}
+		}
+		if (hColumnDescriptorByName.size() > 0) {
+			throw new DescriptionException(String.format("Table '%s': One or several column familly exist but are not described (%s). Set state: absent if you want to remove them", table.tableName.toString(), hColumnDescriptorByName.keySet().toString()));
+		}
+		if (initialNbrModif != this.nbrModif) {
+			boolean wasEnabled = false;
+			if (this.hbAdmin.isTableEnabled(table.tableName)) {
+				this.hbAdmin.disableTable(table.tableName);
+				wasEnabled = true;
+			}
+			this.hbAdmin.modifyTable(table.tableName, tDesc);
+			Pair<Integer, Integer> status = null;
+			for (int i = 0; i < 500; i++) {
+				status = this.hbAdmin.getAlterStatus(table.tableName);
+				if ((i % 10) == 0 || status.getFirst() == 0) {
+					log.info(String.format("Table '%s'. %d region(s) on %d was successfully updated", table.tableName.toString(),  status.getSecond() - status.getFirst(), status.getSecond()));
+				}
+				if (status.getFirst() == 0) {
+					break;
+				} else {
+					Thread.sleep(1000);
+				}
+			}
+			if (status.getFirst() > 0) {
+				throw new DescriptionException(String.format("Table '%s': Unable to update in less than 500s. Still %d region remaining", table.tableName.toString(), status.getFirst()));
+			}
+			if(wasEnabled) {
+				this.hbAdmin.enableTable(table.tableName);
+			}
+		}
+	}
 
+	private void adjustColumnFamily(HColumnDescriptor cd, ColumnFamily cf) throws DescriptionException {
+		if (cf.properties != null) {
+			for (String propertyName : cf.properties.keySet()) {
+				this.nbrModif += HColumnDescriptorBeanHelper.set(cd, propertyName, cf.properties.get(propertyName));
+			}
+		}
+	}
+
+	private HColumnDescriptor createColumnFamily(ColumnFamily cf) throws DescriptionException {
+		HColumnDescriptor cfDesc = new HColumnDescriptor(cf.name);
+		if (cf.properties != null) {
+			for (String propertyName : cf.properties.keySet()) {
+				this.nbrModif += HColumnDescriptorBeanHelper.set(cfDesc, propertyName, cf.properties.get(propertyName));
+			}
+		}
+		return cfDesc;
 	}
 
 	private void createTable(Table table) throws DescriptionException, IOException {
-		HTableDescriptor tDesc = new HTableDescriptor(table.getName());
-		for (String propertyName : table.keySet()) {
-			this.nbrModif += HTableDescriptorBeanHelper.set(tDesc, propertyName, table.get(propertyName));
-		}
-		for (ColumnFamily cf : table.getColumnFamilies()) {
-			HColumnDescriptor cfDesc = new HColumnDescriptor(cf.getName());
-			for (String propertyName : cf.keySet()) {
-				this.nbrModif += HColumnDescriptorBeanHelper.set(cfDesc, propertyName, cf.get(propertyName));
+		HTableDescriptor tDesc = new HTableDescriptor(table.tableName);
+		if (table.properties != null) {
+			for (String propertyName : table.properties.keySet()) {
+				this.nbrModif += HTableDescriptorBeanHelper.set(tDesc, propertyName, table.properties.get(propertyName));
 			}
-			tDesc.addFamily(cfDesc);
 		}
-		log.info(String.format("Will create table '%s' with %d column familly(ies)", table.getName().toString(), table.getColumnFamilies().size()));
+		if (table.columnFamilies != null) {
+			for (ColumnFamily cf : table.columnFamilies) {
+				if (cf.state == State.present) {
+					tDesc.addFamily(this.createColumnFamily(cf));
+					this.nbrModif++;
+				}
+			}
+		}
+		log.info(String.format("Will create table '%s' with %d column familly(ies)", table.tableName.toString(), table.columnFamilies == null ? 0 : table.columnFamilies.size()));
 		if (table.presplit != null) {
 			if (table.presplit.keysAsString != null) {
 				int size = table.presplit.keysAsString.size();
@@ -153,6 +235,7 @@ public class Engine {
 				int size = table.presplit.keysAsNumber.size();
 				byte[][] splitKeys = new byte[size][];
 				for (int i = 0; i < size; i++) {
+					//splitKeys[i] = Bytes.toBytes(new BigDecimal(table.presplit.keysAsNumber.get(i).toString()));
 					splitKeys[i] = Bytes.toBytes(table.presplit.keysAsNumber.get(i));
 				}
 				this.hbAdmin.createTable(tDesc, splitKeys);
@@ -162,6 +245,7 @@ public class Engine {
 		} else {
 			this.hbAdmin.createTable(tDesc);
 		}
+		this.nbrModif++;
 	}
 
 }

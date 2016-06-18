@@ -28,14 +28,14 @@ public class Main {
 		try {
 			main2(argv);
 			System.exit(0);
-		} catch (ConfigurationException | DescriptionException | FileNotFoundException | YamlException e) {
+		} catch (ConfigurationException | DescriptionException | FileNotFoundException | YamlException | InterruptedException e) {
 			log.error(e.getMessage());
 			System.err.println("ERROR: " + e.getMessage());
 			System.exit(1);
 		}
 	}
 
-	static public void main2(String[] argv) throws ConfigurationException, DescriptionException, IOException {
+	static public void main2(String[] argv) throws ConfigurationException, DescriptionException, IOException, InterruptedException {
 		log.info("jdchtable start");
 
 		JdcConfiguration jdcConfiguration = new JdcConfigurationImpl(new Parameters(argv));
@@ -53,7 +53,8 @@ public class Main {
 		if (jdcConfiguration.getZnodeParent() != null) {
 			description.znodeParent = jdcConfiguration.getZnodeParent(); // Override the value in file
 		}
-
+		description.polish();
+		
 		// The following will remove the message: 2014-06-14 01:38:59.359 java[993:1903] Unable to load realm info from SCDynamicStore
 		// Equivalent to HADOOP_OPTS="${HADOOP_OPTS} -Djava.security.krb5.conf=/dev/null"
 		// Of course, should be configured properly in case of use of Kerberos
