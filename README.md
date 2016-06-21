@@ -129,7 +129,7 @@ When launching the jdchtable command you may provide some optional parameters:
 
 All namespaces, tables or columnFamilies not described in the `description.yml` file will be left untouched.
 
-To allow deletion to be performed, All theses object got a `state:` attribute. When not defined, it default to present`. But it could be set to `absent` to trigger the deletion of the corresponding entity.
+To allow deletion to be performed, All theses object got a `state:` attribute. When not defined, it default to `present`. But it could be set to `absent` to trigger the deletion of the corresponding entity.
 
 For example: 
 
