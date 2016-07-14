@@ -17,14 +17,14 @@
     </appender>
     
     
- 	<logger name="com.kappaware"><level value="debug"/></logger>
+ 	<logger name="com.kappaware"><level value="info"/></logger>
     
  	<logger name="org.apache.zookeeper"><level value="warn"/></logger>
     
     
     
     <root>        
-    	<level value="warn" /> 
+    	<level value="info" /> 
 		<appender-ref ref="STDOUT" />
 	</root>
 	

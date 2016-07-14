@@ -130,8 +130,9 @@ public class Engine {
 			nbrModif++;
 			hbAdmin.deleteNamespace(nspace);
 		}
-		System.out.println(String.format("jdchtable: %s modification(s)", nbrModif));
-
+		String m = String.format("jdchtable: %s modification(s)", nbrModif);
+		System.out.println(m);
+		log.info(m);
 	}
 
 	private void deleteTable(Table table) throws IOException {
