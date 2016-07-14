@@ -23,7 +23,7 @@ import org.apache.hadoop.hbase.TableName;
 import com.esotericsoftware.yamlbeans.YamlConfig;
 
 public class Description {
-	enum State {
+	public enum State {
 		present, absent
 	}
 
@@ -50,10 +50,10 @@ public class Description {
 	public String znodeParent;
 	public List<Namespace> namespaces;
 	
-	void polish() throws DescriptionException {
+	void polish(State defaultState) throws DescriptionException {
 		if(namespaces != null) {
 			for(Namespace ns : this.namespaces) {
-				ns.polish();
+				ns.polish(defaultState);
 			}
 		}
 	}
@@ -63,10 +63,13 @@ public class Description {
 		public State state;
 		public List<Table> tables;
 		
-		void polish() throws DescriptionException {
+		void polish(State defaultState) throws DescriptionException {
+			if(this.state == null) {
+				this.state = defaultState;
+			}
 			if(this.tables != null) {
 				for(Table t : this.tables) {
-					t.polish(this.name);
+					t.polish(this.name, defaultState);
 				}
 			}
 		}
@@ -80,20 +83,20 @@ public class Description {
 		public Presplit presplit;
 		public Map<String, Object> properties;
 
-		void polish(String namespaceName) throws DescriptionException {
+		void polish(String namespaceName, State defaultState) throws DescriptionException {
 			if (this.name == null) {
 				throw new DescriptionException("Invalid description: Every table must have a 'name' attribute");
 			}
 			this.tableName = TableName.valueOf(namespaceName, this.name);
 			if (this.state == null) {
-				this.state = State.present;
+				this.state = defaultState;
 			}
 			if (this.state == State.present) {
 				if (this.columnFamilies == null || this.columnFamilies.size() == 0) {
 					throw new DescriptionException(String.format("A table must have a 'columnFamilies' list with at least one item. Not the case for '%s'", this.tableName.toString()));
 				}
 				for (ColumnFamily cf : this.columnFamilies) {
-					cf.polish();
+					cf.polish(defaultState);
 				}
 			}
 			if (this.presplit != null) {
@@ -144,12 +147,12 @@ public class Description {
 		public State state;
 		public Map<String, Object> properties;
 
-		void polish() throws DescriptionException {
+		void polish(State defaultState) throws DescriptionException {
 			if (this.name == null) {
 				throw new DescriptionException("Invalid description: Every column family must have a 'name' attribute");
 			}
 			if (this.state == null) {
-				this.state = State.present;
+				this.state = defaultState;
 			}
 		}
 	}

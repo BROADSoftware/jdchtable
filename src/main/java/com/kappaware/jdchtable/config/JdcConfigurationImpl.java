@@ -15,6 +15,7 @@
  */
 package com.kappaware.jdchtable.config;
 
+import com.kappaware.jdchtable.Description.State;
 
 public class JdcConfigurationImpl implements JdcConfiguration {
 	Parameters parameters;
@@ -37,6 +38,11 @@ public class JdcConfigurationImpl implements JdcConfiguration {
 	@Override
 	public String getZnodeParent() {
 		return parameters.getZnodeParent();
+	}
+
+	@Override
+	public State getDefaultState() {
+		return parameters.getDefaultState();
 	}
 	
 	

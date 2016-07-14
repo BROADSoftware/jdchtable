@@ -125,11 +125,13 @@ When launching the jdchtable command you may provide some optional parameters:
 
 * `--znodeParent` parameter will allow to override the corresponding value in the `description.yml` file.
 
+* `--defaultState` parameter will allow setting of all `state` value which are not explicitly defined. See below 
+
 ### ColumnFamily, Table and namespace deletion
 
 All namespaces, tables or columnFamilies not described in the `description.yml` file will be left untouched.
 
-To allow deletion to be performed, All theses object got a `state:` attribute. When not defined, it default to `present`. But it could be set to `absent` to trigger the deletion of the corresponding entity.
+To allow deletion to be performed, All theses object got a `state:` attribute. When not defined, it default to  `present`, or to the value provided by the `--defaultState` parameter. But it could be set to `absent` to trigger the deletion of the corresponding entity.
 
 For example: 
 

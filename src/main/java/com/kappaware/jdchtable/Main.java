@@ -68,7 +68,7 @@ public class Main {
 		if (jdcConfiguration.getZnodeParent() != null) {
 			description.znodeParent = jdcConfiguration.getZnodeParent(); // Override the value in file
 		}
-		description.polish();
+		description.polish(jdcConfiguration.getDefaultState());
 		
 		// The following will remove the message: 2014-06-14 01:38:59.359 java[993:1903] Unable to load realm info from SCDynamicStore
 		// Equivalent to HADOOP_OPTS="${HADOOP_OPTS} -Djava.security.krb5.conf=/dev/null"

@@ -15,6 +15,8 @@
  */
 package com.kappaware.jdchtable.config;
 
+import com.kappaware.jdchtable.Description.State;
+
 public interface JdcConfiguration {
 
 	String getInputFile();
@@ -22,5 +24,7 @@ public interface JdcConfiguration {
 	String getZookeeper();
 
 	String getZnodeParent();
+
+	State getDefaultState();
 
 }

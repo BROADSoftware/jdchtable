@@ -22,6 +22,9 @@ import java.io.PrintWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.kappaware.jdchtable.Description;
+import com.kappaware.jdchtable.Description.State;
+
 import joptsimple.BuiltinHelpFormatter;
 import joptsimple.OptionException;
 import joptsimple.OptionParser;
@@ -34,6 +37,7 @@ public class Parameters {
 	private String inputFile;
 	private String zookeeper;
 	private String znodeParent;
+	private State defaultState;
 	
 	static OptionParser parser = new OptionParser();
 	static {
@@ -43,7 +47,7 @@ public class Parameters {
 	static OptionSpec<String> INPUT_FILE_OPT = parser.accepts("inputFile", "Hbase table layout description").withRequiredArg().describedAs("input file").ofType(String.class).required();
 	static OptionSpec<String> ZOOKEEPER_OPT = parser.accepts("zookeeper", "Comma separated values of Zookeeper nodes").withRequiredArg().describedAs("zk1:2181,ek2:2181").ofType(String.class);
 	static OptionSpec<String> ZNODE_PARENT_OPT = parser.accepts("znodeParent", "HBase znode parent (Default: /hbase)").withRequiredArg().describedAs("znodeParent").ofType(String.class);
-
+	static OptionSpec<State> DEFAULT_STATE = parser.accepts("defaultState", "Default entity state").withRequiredArg().describedAs("present|absent").ofType(State.class).defaultsTo(State.present);
 
 	@SuppressWarnings("serial")
 	private static class MyOptionException extends Exception {
@@ -65,6 +69,7 @@ public class Parameters {
 			this.inputFile = result.valueOf(INPUT_FILE_OPT);
 			this.zookeeper = result.valueOf(ZOOKEEPER_OPT);
 			this.znodeParent = result.valueOf(ZNODE_PARENT_OPT);
+			this.defaultState = result.valueOf(DEFAULT_STATE);
 
 		} catch (OptionException | MyOptionException t) {
 			throw new ConfigurationException(usage(t.getMessage()));
@@ -98,6 +103,10 @@ public class Parameters {
 
 	public String getZnodeParent() {
 		return znodeParent;
+	}
+
+	public Description.State getDefaultState() {
+		return defaultState;
 	}
 
 
