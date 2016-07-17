@@ -23,7 +23,7 @@ There are several package, which differ by HBase and Hadoop library version. Pic
 
 Once installed, usage is the following:
 
-    $ jdchtable --inputFile yourDescription.yml
+    # jdchtable --inputFile yourDescription.yml
     
 Where `yourDescription.yml` is a file containing your target HBase namespace and table description. jdchtable will then perform all required operation to reach this target state.
 
@@ -178,7 +178,7 @@ This role can be used as following;
 	
 	- hosts: sr1
 	  vars:
-	    jdchtable_rpm_url: https://github.com/BROADSoftware/jdchtable/releases/download/v0.1.0/jdchtable_cdh552-0.1.0-1.noarch.rpm
+	    jdchtable_rpm_url: https://github.com/BROADSoftware/jdchtable/releases/download/v0.1.1/jdchtable_cdh552-0.1.1-1.noarch.rpm
 	    myDescription:
 	      namespaces: 
 	      - name: testapp1
@@ -197,6 +197,23 @@ This role can be used as following;
 	  - { role: hadoop/jdchtable, jdchtable_description: "{{myDescription}}" }
   
 > Note `- hosts: zookeepers` at the beginning, which force ansible to grab info about the hosts in the [zookeepers] group, to be able to fulfill this info into jdchtable configuration. Of course, such a group must be defined in the inventory. 
+
+***
+## Ansible integration
+
+You will find an Ansible role [at this location](http://github.com/BROADSoftware/bsx-roles/tree/master/kappatools/kdescribe).
+
+This role can be used as following;
+	
+	- hosts: zookeepers
+	
+	- hosts: cmd_node
+	  vars:
+	    kdescribe_rpm_url: http://git2.broadsoftware.com/jenkins/job/kdescribe/lastSuccessfulBuild/artifact/build/distributions/kdescribe-0.1.0-1.noarch.rpm
+	  roles:
+	  - kappatools/kdescribe
+	  
+> Note `- hosts: zookeepers` at the beginning, which force ansible to grab info about the hosts in the [zookeepers] group, to be able to fulfill this info into kdescribe configuration. Of course, such a group must be defined in the inventory. 
 
 ***
 ## Build
