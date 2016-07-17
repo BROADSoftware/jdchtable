@@ -130,7 +130,7 @@ public class Engine {
 			nbrModif++;
 			hbAdmin.deleteNamespace(nspace);
 		}
-		String m = String.format("jdchtable: %s modification(s)", nbrModif);
+		String m = String.format("jdchtable: %d modification(s)", nbrModif);
 		System.out.println(m);
 		log.info(m);
 	}

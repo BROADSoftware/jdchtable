@@ -44,7 +44,7 @@ public class Main {
 			main2(argv);
 			System.exit(0);
 		} catch (ConfigurationException | DescriptionException | FileNotFoundException | YamlException | InterruptedException e) {
-			//log.error(e.getMessage());
+			log.error(e.getMessage());
 			System.err.println("ERROR: " + e.getMessage());
 			System.exit(1);
 		}
