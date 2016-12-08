@@ -126,6 +126,8 @@ Note the result will be the same for this two last expressions.
 
 Internally, all theses strings are parsed using the function `org.apache.hadoop.hbase.util.Bytes.toBytesBinary()`
 
+WARNING: All hexadecimal letter (A-F) must be upper case!
+
 ### Other launch option
 
 When launching the jdchtable command you may provide some optional parameters:
