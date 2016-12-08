@@ -16,6 +16,7 @@
 package com.kappaware.jdchtable;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -240,23 +241,17 @@ public class Engine {
 		}
 		log.info(String.format("Will create table '%s' with %d column familly(ies)", table.tableName.toString(), table.columnFamilies == null ? 0 : table.columnFamilies.size()));
 		if (table.presplit != null) {
-			if (table.presplit.keysAsString != null) {
-				int size = table.presplit.keysAsString.size();
+			if (table.presplit.keys != null) {
+				int size = table.presplit.keys.size();
 				byte[][] splitKeys = new byte[size][];
 				for (int i = 0; i < size; i++) {
-					splitKeys[i] = Bytes.toBytes(table.presplit.keysAsString.get(i));
-				}
-				this.hbAdmin.createTable(tDesc, splitKeys);
-			} else if (table.presplit.keysAsNumber != null) {
-				int size = table.presplit.keysAsNumber.size();
-				byte[][] splitKeys = new byte[size][];
-				for (int i = 0; i < size; i++) {
-					//splitKeys[i] = Bytes.toBytes(new BigDecimal(table.presplit.keysAsNumber.get(i).toString()));
-					splitKeys[i] = Bytes.toBytes(table.presplit.keysAsNumber.get(i));
+					splitKeys[i] = Bytes.toBytesBinary(table.presplit.keys.get(i));
 				}
 				this.hbAdmin.createTable(tDesc, splitKeys);
 			} else {
-				this.hbAdmin.createTable(tDesc, Bytes.toBytes(table.presplit.startKey), Bytes.toBytes(table.presplit.endKey), table.presplit.numRegion);
+				byte[][] r = Bytes.split(Bytes.toBytesBinary(table.presplit.startKey), Bytes.toBytesBinary(table.presplit.endKey), true, table.presplit.numRegion -1);
+				byte[][] splitKeys = Arrays.copyOfRange(r, 1, table.presplit.numRegion);
+				this.hbAdmin.createTable(tDesc, splitKeys);
 			}
 		} else {
 			this.hbAdmin.createTable(tDesc);

@@ -90,32 +90,41 @@ For the columnFamily properties, refer to the Javadoc of the class `org.apache.h
 
 Please, note than unlike all other definition, presplitting is only effective at the initial table creation. If the table already exists, no modification is performed and the presplit: attribute is ignored.
 
-Presplitting can be expressed with one othe the following 3 methods:
+Presplitting can be expressed with one othe the following 2 methods:
 
 	  presplit:
-	    keysAsString:
+	    keys:
 	    - BENJAMIN
 	    - JULIA
 	    - MARTIN
 	    - PAUL
-	    - VALENTIN       
-
-or:
-
-	  presplit:
-	    keysAsNumber:
-	    - 20000
-	    - 40000
-	    - 60000
-	    - 80000
+	    - VALENTIN     
 
 or:
             
 	  presplit:
-	    startKey: 10000
-	    endKey: 90000
+	    startKey: "A"
+	    endKey: "Z"
 	    numRegion: 10
             
+One can also use the notation "\xXX" to express binary values in the string. For example:
+
+    presplit:
+      keys:
+      - "\x33"
+      - "\x66"
+      - "\x99"
+      - "\xCC"
+or:
+      
+    presplit:
+      startKey: "\x00"
+      endKey:   "\xFF"
+      numRegion: 5
+
+Note the result will be the same for this two last expressions.
+
+Internally, all theses strings are parsed using the function `org.apache.hadoop.hbase.util.Bytes.toBytesBinary()`
 
 ### Other launch option
 

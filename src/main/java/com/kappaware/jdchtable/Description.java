@@ -37,7 +37,7 @@ public class Description {
 		yamlConfig.setPropertyElementType(Description.class, "namespaces", Namespace.class);
 		yamlConfig.setPropertyElementType(Namespace.class, "tables", Table.class);
 		yamlConfig.setPropertyElementType(Table.class, "columnFamilies", ColumnFamily.class);
-		yamlConfig.setPropertyElementType(Presplit.class, "keysAsNumber", Long.class);
+		yamlConfig.setPropertyElementType(Presplit.class, "keys", String.class);
 		yamlConfig.writeConfig.setWriteRootTags(false);
 		yamlConfig.writeConfig.setWriteRootElementTags(false);
 	}
@@ -107,24 +107,22 @@ public class Description {
 	}
 
 	static public class Presplit {
-		public List<Long> keysAsNumber;
-		public List<String> keysAsString;
-		public Long startKey;
-		public Long endKey;
+		public List<String> keys;
+		public String startKey;
+		public String endKey;
 		public Integer numRegion;
 
 		void polish(String tableName) throws DescriptionException {
-			if (this.keysAsNumber != null) {
-				if (this.keysAsString != null || this.startKey != null || this.endKey != null || this.numRegion != null) {
-					throw new DescriptionException(String.format("keysAsNumber property is exclusive (Table %s)", tableName));
-				}
-			} else if (this.keysAsString != null) {
-				if (this.keysAsNumber != null || this.startKey != null || this.endKey != null || this.numRegion != null) {
-					throw new DescriptionException(String.format("keysAsString property is exclusive (Table %s)", tableName));
+			if (this.keys != null) {
+				if (this.startKey != null || this.endKey != null || this.numRegion != null) {
+					throw new DescriptionException(String.format("keys property is exclusive in prespit (Table %s)", tableName));
 				}
 			} else {
 				if (this.startKey == null || this.endKey == null || this.numRegion == null) {
-					throw new DescriptionException(String.format("startKey, endKey and numRegion must be defined together (Table %s)", tableName));
+					throw new DescriptionException(String.format("startKey, endKey and numRegion must be defined together in presplit (Table %s)", tableName));
+				}
+				if(numRegion < 2) {
+					throw new DescriptionException(String.format("numRegion must be >= 2 for presplit  (Table %s)", tableName));
 				}
 			}
 		}
