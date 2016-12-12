@@ -45,7 +45,7 @@ public class Parameters {
 	}
 
 	static OptionSpec<String> INPUT_FILE_OPT = parser.accepts("inputFile", "Hbase table layout description").withRequiredArg().describedAs("input file").ofType(String.class).required();
-	static OptionSpec<String> ZOOKEEPER_OPT = parser.accepts("zookeeper", "Comma separated values of Zookeeper nodes").withRequiredArg().describedAs("zk1:2181,ek2:2181").ofType(String.class);
+	static OptionSpec<String> ZOOKEEPER_OPT = parser.accepts("zookeeper", "Comma separated values of Zookeeper nodes").withRequiredArg().describedAs("zk1:2181,zk2:2181").ofType(String.class);
 	static OptionSpec<String> ZNODE_PARENT_OPT = parser.accepts("znodeParent", "HBase znode parent (Default: /hbase)").withRequiredArg().describedAs("znodeParent").ofType(String.class);
 	static OptionSpec<State> DEFAULT_STATE = parser.accepts("defaultState", "Default entity state").withRequiredArg().describedAs("present|absent").ofType(State.class).defaultsTo(State.present);
 

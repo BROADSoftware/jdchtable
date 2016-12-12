@@ -14,9 +14,13 @@
  * limitations under the License.
  */
 
+
+
 plugins {
   id 'nebula.ospackage' version '3.4.0'
 }
+
+defaultTasks 'all'
 
 
 apply plugin: 'java'
