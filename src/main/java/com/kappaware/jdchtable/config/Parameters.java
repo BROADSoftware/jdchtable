@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import com.kappaware.jdchtable.Description;
 import com.kappaware.jdchtable.Description.State;
+import com.kappaware.jdchtable.Utils;
 
 import joptsimple.BuiltinHelpFormatter;
 import joptsimple.OptionException;
@@ -38,6 +39,8 @@ public class Parameters {
 	private String zookeeper;
 	private String znodeParent;
 	private State defaultState;
+	private String principal;
+	private String keytab;
 	
 	static OptionParser parser = new OptionParser();
 	static {
@@ -49,6 +52,10 @@ public class Parameters {
 	static OptionSpec<String> ZNODE_PARENT_OPT = parser.accepts("znodeParent", "HBase znode parent (Default: /hbase)").withRequiredArg().describedAs("znodeParent").ofType(String.class);
 	static OptionSpec<State> DEFAULT_STATE = parser.accepts("defaultState", "Default entity state").withRequiredArg().describedAs("present|absent").ofType(State.class).defaultsTo(State.present);
 
+	static OptionSpec<String> PRINCIPAL_OPT = parser.accepts("principal", "Kerberos principal").withRequiredArg().describedAs("<principal>").ofType(String.class);
+	static OptionSpec<String> KEYTAB_OPT = parser.accepts("keytab", "Keytyab file path").withRequiredArg().describedAs("<keytab file>").ofType(String.class);
+
+	
 	@SuppressWarnings("serial")
 	private static class MyOptionException extends Exception {
 
@@ -70,9 +77,13 @@ public class Parameters {
 			this.zookeeper = result.valueOf(ZOOKEEPER_OPT);
 			this.znodeParent = result.valueOf(ZNODE_PARENT_OPT);
 			this.defaultState = result.valueOf(DEFAULT_STATE);
-
+			this.principal = result.valueOf(PRINCIPAL_OPT);
+			this.keytab = result.valueOf(KEYTAB_OPT);
 		} catch (OptionException | MyOptionException t) {
 			throw new ConfigurationException(usage(t.getMessage()));
+		}
+		if(Utils.isNullOrEmpty(this.principal) ^ Utils.isNullOrEmpty(this.keytab)) {
+			throw new ConfigurationException("Both or none of --principal and --keytab must be defined");
 		}
 	}
 
@@ -109,7 +120,12 @@ public class Parameters {
 		return defaultState;
 	}
 
+	public String getPrincipal() {
+		return this.principal;
+	}
 
-
+	public String getKeytab() {
+		return this.keytab;
+	}
 
 }

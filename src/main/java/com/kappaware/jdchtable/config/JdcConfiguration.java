@@ -26,5 +26,11 @@ public interface JdcConfiguration {
 	String getZnodeParent();
 
 	State getDefaultState();
+	
+	String getPrincipal();
+	
+	String getKeytab();
+
+	boolean isKerberos();
 
 }

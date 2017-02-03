@@ -16,6 +16,7 @@
 package com.kappaware.jdchtable.config;
 
 import com.kappaware.jdchtable.Description.State;
+import com.kappaware.jdchtable.Utils;
 
 public class JdcConfigurationImpl implements JdcConfiguration {
 	Parameters parameters;
@@ -43,6 +44,21 @@ public class JdcConfigurationImpl implements JdcConfiguration {
 	@Override
 	public State getDefaultState() {
 		return parameters.getDefaultState();
+	}
+
+	@Override
+	public String getPrincipal() {
+		return parameters.getPrincipal();
+	}
+
+	@Override
+	public String getKeytab() {
+		return parameters.getKeytab();
+	}
+
+	@Override
+	public boolean isKerberos() {
+		return ! Utils.isNullOrEmpty(this.getPrincipal());
 	}
 	
 	

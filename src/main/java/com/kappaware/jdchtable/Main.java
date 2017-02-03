@@ -25,6 +25,7 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +38,6 @@ import com.kappaware.jdchtable.config.Parameters;
 
 public class Main {
 	static Logger log = LoggerFactory.getLogger(Main.class);
-	
 
 	static public void main(String[] argv) throws IOException {
 		try {
@@ -69,7 +69,7 @@ public class Main {
 			description.znodeParent = jdcConfiguration.getZnodeParent(); // Override the value in file
 		}
 		description.polish(jdcConfiguration.getDefaultState());
-		
+
 		// The following will remove the message: 2014-06-14 01:38:59.359 java[993:1903] Unable to load realm info from SCDynamicStore
 		// Equivalent to HADOOP_OPTS="${HADOOP_OPTS} -Djava.security.krb5.conf=/dev/null"
 		// Of course, should be configured properly in case of use of Kerberos
@@ -80,6 +80,12 @@ public class Main {
 		if (description.znodeParent != null) {
 			config.set("zookeeper.znode.parent", description.znodeParent);
 		}
+		if (jdcConfiguration.isKerberos()) {
+			config.set("hadoop.security.authentication", "Kerberos");
+			UserGroupInformation.setConfiguration(config);
+			UserGroupInformation userGroupInformation = UserGroupInformation.loginUserFromKeytabAndReturnUGI(jdcConfiguration.getPrincipal(), jdcConfiguration.getKeytab());
+			UserGroupInformation.setLoginUser(userGroupInformation);
+		}
 
 		Admin hbAdmin = null;
 		try {
@@ -87,13 +93,12 @@ public class Main {
 			hbAdmin = connection.getAdmin();
 			Engine engine = new Engine(hbAdmin, description);
 			engine.run();
-		
+
 		} finally {
 			if (hbAdmin != null) {
 				hbAdmin.close();
 			}
 		}
 	}
-
 
 }
