@@ -76,6 +76,7 @@ public class Main {
 		//System.setProperty("java.security.krb5.conf", "/dev/null");
 
 		Configuration config = HBaseConfiguration.create();
+		config.addResource("/etc/hadoop/conf/hdfs-site.xml");
 		config.set("hbase.zookeeper.quorum", description.zookeeper);
 		if (description.znodeParent != null) {
 			config.set("zookeeper.znode.parent", description.znodeParent);
@@ -83,8 +84,16 @@ public class Main {
 		if (jdcConfiguration.isKerberos()) {
 			config.set("hadoop.security.authentication", "Kerberos");
 			UserGroupInformation.setConfiguration(config);
-			UserGroupInformation userGroupInformation = UserGroupInformation.loginUserFromKeytabAndReturnUGI(jdcConfiguration.getPrincipal(), jdcConfiguration.getKeytab());
-			UserGroupInformation.setLoginUser(userGroupInformation);
+			if (!UserGroupInformation.isSecurityEnabled()) {
+				throw new IOException("Security is not enabled in core-site.xml");
+			}
+			try {
+				UserGroupInformation userGroupInformation = UserGroupInformation.loginUserFromKeytabAndReturnUGI(jdcConfiguration.getPrincipal(), jdcConfiguration.getKeytab());
+				UserGroupInformation.setLoginUser(userGroupInformation);
+			} 
+			catch(Exception e) {
+				log.error(e.getMessage());
+			}
 		}
 
 		Admin hbAdmin = null;
