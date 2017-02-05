@@ -15,22 +15,22 @@
  */
 package com.kappaware.jdchtable.config;
 
+import java.util.List;
+
 import com.kappaware.jdchtable.Description.State;
 
 public interface JdcConfiguration {
 
 	String getInputFile();
 
-	String getZookeeper();
-
-	String getZnodeParent();
-
 	State getDefaultState();
-	
+
 	String getPrincipal();
 	
 	String getKeytab();
 
-	boolean isKerberos();
+	String getDumpConfigFile();
+
+	List<String> getConfigFiles();
 
 }

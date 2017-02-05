@@ -15,8 +15,9 @@
  */
 package com.kappaware.jdchtable.config;
 
+import java.util.List;
+
 import com.kappaware.jdchtable.Description.State;
-import com.kappaware.jdchtable.Utils;
 
 public class JdcConfigurationImpl implements JdcConfiguration {
 	Parameters parameters;
@@ -31,15 +32,6 @@ public class JdcConfigurationImpl implements JdcConfiguration {
 		return parameters.getInputFile();
 	}
 
-	@Override
-	public String getZookeeper() {
-		return parameters.getZookeeper();
-	}
-
-	@Override
-	public String getZnodeParent() {
-		return parameters.getZnodeParent();
-	}
 
 	@Override
 	public State getDefaultState() {
@@ -57,11 +49,15 @@ public class JdcConfigurationImpl implements JdcConfiguration {
 	}
 
 	@Override
-	public boolean isKerberos() {
-		return ! Utils.isNullOrEmpty(this.getPrincipal());
+	public String getDumpConfigFile() {
+		return parameters.getDumpConfigFile();
 	}
+
 	
-	
-	
+	@Override
+	public List<String> getConfigFiles() {
+		return parameters.getConfigFiles();
+	}
+
 		
 }

@@ -21,6 +21,7 @@ import java.io.FileReader;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
@@ -62,40 +63,33 @@ public class Main {
 		}
 		YamlReader yamlReader = new YamlReader(new FileReader(file), Description.getYamlConfig());
 		Description description = yamlReader.read(Description.class);
-		if (jdcConfiguration.getZookeeper() != null) {
-			description.zookeeper = jdcConfiguration.getZookeeper(); // Override the value in file
-		}
-		if (jdcConfiguration.getZnodeParent() != null) {
-			description.znodeParent = jdcConfiguration.getZnodeParent(); // Override the value in file
-		}
 		description.polish(jdcConfiguration.getDefaultState());
 
-		// The following will remove the message: 2014-06-14 01:38:59.359 java[993:1903] Unable to load realm info from SCDynamicStore
-		// Equivalent to HADOOP_OPTS="${HADOOP_OPTS} -Djava.security.krb5.conf=/dev/null"
-		// Of course, should be configured properly in case of use of Kerberos
-		//System.setProperty("java.security.krb5.conf", "/dev/null");
-
 		Configuration config = HBaseConfiguration.create();
-		config.addResource("/etc/hadoop/conf/hdfs-site.xml");
-		config.set("hbase.zookeeper.quorum", description.zookeeper);
-		if (description.znodeParent != null) {
-			config.set("zookeeper.znode.parent", description.znodeParent);
+		for(String cf: jdcConfiguration.getConfigFiles()) {
+			File f = new File(cf);
+			if(!f.canRead()) {
+				throw new ConfigurationException(String.format("Unable to read file '%s'", cf));
+			}
+			log.debug(String.format("Will load '%s'", cf));
+			config.addResource(new Path(cf));
 		}
-		if (jdcConfiguration.isKerberos()) {
-			config.set("hadoop.security.authentication", "Kerberos");
+		//config.reloadConfiguration();
+		if (Utils.hasText(jdcConfiguration.getDumpConfigFile())) {
+			Utils.dumpConfiguration(config, jdcConfiguration.getDumpConfigFile());
+		}
+		if (Utils.hasText(jdcConfiguration.getKeytab()) && Utils.hasText(jdcConfiguration.getPrincipal())) {
 			UserGroupInformation.setConfiguration(config);
 			if (!UserGroupInformation.isSecurityEnabled()) {
-				throw new IOException("Security is not enabled in core-site.xml");
+				throw new ConfigurationException("Security is not enabled in core-site.xml while Kerberos principal and keytab are provided.");
 			}
 			try {
 				UserGroupInformation userGroupInformation = UserGroupInformation.loginUserFromKeytabAndReturnUGI(jdcConfiguration.getPrincipal(), jdcConfiguration.getKeytab());
 				UserGroupInformation.setLoginUser(userGroupInformation);
-			} 
-			catch(Exception e) {
-				log.error(e.getMessage());
+			} catch (Exception e) {
+				throw new ConfigurationException(String.format("Kerberos: Unable to authenticate with principal='%s' and keytab='%s'.", jdcConfiguration.getPrincipal(), jdcConfiguration.getKeytab()));
 			}
 		}
-
 		Admin hbAdmin = null;
 		try {
 			Connection connection = ConnectionFactory.createConnection(config);
@@ -109,5 +103,4 @@ public class Main {
 			}
 		}
 	}
-
 }

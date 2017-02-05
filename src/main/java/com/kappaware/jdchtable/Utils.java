@@ -15,9 +15,17 @@
  */
 package com.kappaware.jdchtable;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+
+import org.apache.hadoop.conf.Configuration;
 
 
 public class Utils {
@@ -58,7 +66,34 @@ public class Utils {
 		return (s == null || s.trim().length() == 0);
 	}
 
-	
+	public static boolean hasText(String s) {
+		return (s != null && s.trim().length() > 0);
+	}
+
+
+	static public void dumpConfiguration(Configuration conf, String dumpFile) throws IOException {
+		Writer out = null;
+		try {
+			out = new BufferedWriter(new FileWriter(dumpFile, false));
+			/*
+			Map<String, String> result = conf.getValByRegex(".*");
+			for (String s : result.keySet()) {
+				out.write(String.format("%s -> %s\n", s, result.get(s)));
+			}
+			*/
+			Iterator<Map.Entry<String, String>> it = conf.iterator();
+			while(it.hasNext()) {
+				Map.Entry<String, String> entry = it.next();
+				out.write(String.format("%s -> %s\n", entry.getKey(), entry.getValue()));
+			}
+			//Configuration.dumpConfiguration(conf, out);
+		} finally {
+			if (out != null) {
+				out.close();
+			}
+		}
+	}
+
 	
 	
 }

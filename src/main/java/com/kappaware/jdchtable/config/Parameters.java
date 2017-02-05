@@ -18,6 +18,7 @@ package com.kappaware.jdchtable.config;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,24 +37,27 @@ public class Parameters {
 	static Logger log = LoggerFactory.getLogger(Parameters.class);
 
 	private String inputFile;
-	private String zookeeper;
-	private String znodeParent;
 	private State defaultState;
 	private String principal;
 	private String keytab;
+	private String dumpConfigFile;
+	private List<String> configFiles;
 	
 	static OptionParser parser = new OptionParser();
 	static {
 		parser.formatHelpWith(new BuiltinHelpFormatter(120,2));
 	}
 
-	static OptionSpec<String> INPUT_FILE_OPT = parser.accepts("inputFile", "Hbase table layout description").withRequiredArg().describedAs("input file").ofType(String.class).required();
-	static OptionSpec<String> ZOOKEEPER_OPT = parser.accepts("zookeeper", "Comma separated values of Zookeeper nodes").withRequiredArg().describedAs("zk1:2181,zk2:2181").ofType(String.class);
-	static OptionSpec<String> ZNODE_PARENT_OPT = parser.accepts("znodeParent", "HBase znode parent (Default: /hbase)").withRequiredArg().describedAs("znodeParent").ofType(String.class);
+	static OptionSpec<String> INPUT_FILE_OPT = parser.accepts("inputFile", "Hbase table layout description").withRequiredArg().describedAs("input_file").ofType(String.class).required();
 	static OptionSpec<State> DEFAULT_STATE = parser.accepts("defaultState", "Default entity state").withRequiredArg().describedAs("present|absent").ofType(State.class).defaultsTo(State.present);
 
+	static OptionSpec<String> CONFIG_FILES_OPT = parser.accepts("configFile", "Config file (xxx-site.xml). May be specified several times").withOptionalArg().describedAs("xxxx-site.xml").ofType(String.class);
+
+	
 	static OptionSpec<String> PRINCIPAL_OPT = parser.accepts("principal", "Kerberos principal").withRequiredArg().describedAs("<principal>").ofType(String.class);
-	static OptionSpec<String> KEYTAB_OPT = parser.accepts("keytab", "Keytyab file path").withRequiredArg().describedAs("<keytab file>").ofType(String.class);
+	static OptionSpec<String> KEYTAB_OPT = parser.accepts("keytab", "Keytyab file path").withRequiredArg().describedAs("<keytab_file>").ofType(String.class);
+
+	static OptionSpec<String> DUMP_CONFIG_FILE_OPT = parser.accepts("dumpConfigFile", "Debuging purpose: All HBaseConfiguration will be dumped in this file").withRequiredArg().describedAs("dump_file").ofType(String.class);
 
 	
 	@SuppressWarnings("serial")
@@ -74,11 +78,11 @@ public class Parameters {
 			}
 			// Mandatories parameters
 			this.inputFile = result.valueOf(INPUT_FILE_OPT);
-			this.zookeeper = result.valueOf(ZOOKEEPER_OPT);
-			this.znodeParent = result.valueOf(ZNODE_PARENT_OPT);
 			this.defaultState = result.valueOf(DEFAULT_STATE);
 			this.principal = result.valueOf(PRINCIPAL_OPT);
 			this.keytab = result.valueOf(KEYTAB_OPT);
+			this.dumpConfigFile = result.valueOf(DUMP_CONFIG_FILE_OPT);
+			this.configFiles = result.valuesOf(CONFIG_FILES_OPT);
 		} catch (OptionException | MyOptionException t) {
 			throw new ConfigurationException(usage(t.getMessage()));
 		}
@@ -108,14 +112,6 @@ public class Parameters {
 		return inputFile;
 	}
 
-	public String getZookeeper() {
-		return zookeeper;
-	}
-
-	public String getZnodeParent() {
-		return znodeParent;
-	}
-
 	public Description.State getDefaultState() {
 		return defaultState;
 	}
@@ -126,6 +122,14 @@ public class Parameters {
 
 	public String getKeytab() {
 		return this.keytab;
+	}
+
+	public String getDumpConfigFile() {
+		return dumpConfigFile;
+	}
+
+	public List<String> getConfigFiles() {
+		return configFiles;
 	}
 
 }
