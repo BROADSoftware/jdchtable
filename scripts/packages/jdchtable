@@ -81,6 +81,8 @@ checkJar() {
 
 checkJava
 checkJar
-$java -jar $JOPTS $jar $OPTS $*
+CLASSPATH=`hbase classpath`:`hadoop classpath`:$jar
+
+$java -classpath $CLASSPATH $JOPTS com.kappaware.jdchtable.Main $OPTS "$@"
 
 

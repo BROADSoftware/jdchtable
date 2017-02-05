@@ -33,4 +33,6 @@ public interface JdcConfiguration {
 
 	List<String> getConfigFiles();
 
+	int getClientRetries();
+
 }

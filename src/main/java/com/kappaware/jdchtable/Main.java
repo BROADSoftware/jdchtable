@@ -74,6 +74,7 @@ public class Main {
 			log.debug(String.format("Will load '%s'", cf));
 			config.addResource(new Path(cf));
 		}
+		config.set("hbase.client.retries.number", Integer.toString(jdcConfiguration.getClientRetries()));
 		//config.reloadConfiguration();
 		if (Utils.hasText(jdcConfiguration.getDumpConfigFile())) {
 			Utils.dumpConfiguration(config, jdcConfiguration.getDumpConfigFile());

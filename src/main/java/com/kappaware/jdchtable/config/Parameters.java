@@ -42,22 +42,23 @@ public class Parameters {
 	private String keytab;
 	private String dumpConfigFile;
 	private List<String> configFiles;
+	private int clientRetries;
 	
 	static OptionParser parser = new OptionParser();
 	static {
 		parser.formatHelpWith(new BuiltinHelpFormatter(120,2));
 	}
-
 	static OptionSpec<String> INPUT_FILE_OPT = parser.accepts("inputFile", "Hbase table layout description").withRequiredArg().describedAs("input_file").ofType(String.class).required();
 	static OptionSpec<State> DEFAULT_STATE = parser.accepts("defaultState", "Default entity state").withRequiredArg().describedAs("present|absent").ofType(State.class).defaultsTo(State.present);
 
-	static OptionSpec<String> CONFIG_FILES_OPT = parser.accepts("configFile", "Config file (xxx-site.xml). May be specified several times").withOptionalArg().describedAs("xxxx-site.xml").ofType(String.class);
-
+	static OptionSpec<String> CONFIG_FILES_OPT = parser.accepts("configFile", "Config file (xxx-site.xml). May be specified several times").withRequiredArg().describedAs("xxxx-site.xml").ofType(String.class);
 	
-	static OptionSpec<String> PRINCIPAL_OPT = parser.accepts("principal", "Kerberos principal").withRequiredArg().describedAs("<principal>").ofType(String.class);
-	static OptionSpec<String> KEYTAB_OPT = parser.accepts("keytab", "Keytyab file path").withRequiredArg().describedAs("<keytab_file>").ofType(String.class);
+	static OptionSpec<String> PRINCIPAL_OPT = parser.accepts("principal", "Kerberos principal").withRequiredArg().describedAs("principal").ofType(String.class);
+	static OptionSpec<String> KEYTAB_OPT = parser.accepts("keytab", "Keytyab file path").withRequiredArg().describedAs("keytab_file").ofType(String.class);
 
 	static OptionSpec<String> DUMP_CONFIG_FILE_OPT = parser.accepts("dumpConfigFile", "Debuging purpose: All HBaseConfiguration will be dumped in this file").withRequiredArg().describedAs("dump_file").ofType(String.class);
+
+	static OptionSpec<Integer> CLIENT_RETRIES_OPT = parser.accepts("clientRetries", "Number of connection attemps before failure").withRequiredArg().describedAs("nbr_retries").ofType(Integer.class).defaultsTo(6);
 
 	
 	@SuppressWarnings("serial")
@@ -83,6 +84,7 @@ public class Parameters {
 			this.keytab = result.valueOf(KEYTAB_OPT);
 			this.dumpConfigFile = result.valueOf(DUMP_CONFIG_FILE_OPT);
 			this.configFiles = result.valuesOf(CONFIG_FILES_OPT);
+			this.clientRetries = result.valueOf(CLIENT_RETRIES_OPT);
 		} catch (OptionException | MyOptionException t) {
 			throw new ConfigurationException(usage(t.getMessage()));
 		}
@@ -130,6 +132,10 @@ public class Parameters {
 
 	public List<String> getConfigFiles() {
 		return configFiles;
+	}
+
+	public int getClientRetries() {
+		return clientRetries;
 	}
 
 }

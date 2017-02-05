@@ -59,5 +59,11 @@ public class JdcConfigurationImpl implements JdcConfiguration {
 		return parameters.getConfigFiles();
 	}
 
+	
+	@Override
+	public int getClientRetries() {
+		return parameters.getClientRetries();
+	}
+
 		
 }

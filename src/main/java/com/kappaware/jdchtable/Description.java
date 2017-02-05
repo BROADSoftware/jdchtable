@@ -46,8 +46,6 @@ public class Description {
 		return yamlConfig;
 	}
 
-	public String zookeeper;
-	public String znodeParent;
 	public List<Namespace> namespaces;
 	
 	void polish(State defaultState) throws DescriptionException {

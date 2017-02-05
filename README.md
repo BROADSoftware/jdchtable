@@ -19,7 +19,7 @@ This make jdchtable a fully idempotent tool, as all modern DevOps tools should b
 
 jdchtable is provided as rpm packages (Sorry, only this packaging is currently provided. Contribution welcome), on the [release pages](https://github.com/BROADSoftware/jdchtable/releases).
 
-There are several package, which differ by HBase and Hadoop library version. Pick up the one appropriate for your context.
+jdchtable MUST be used on properly configured Hadoop client node. (i.e `hbase shell` must be functional)
 
 Once installed, usage is the following:
 
@@ -31,8 +31,6 @@ Note than if `yourDescription.yml` content match the current configuration, no o
 
 Here is a sample of such `description.yml` file:
 
-    zookeeper: "zknode1.yourdomain.com,zknode2.yourdomain.com,zknode3.yourdomain.com"
-    znodeParent: /hbase-unsecure
     namespaces: 
       - name: testapp1
         tables:
@@ -57,14 +55,6 @@ Here is a sample of such `description.yml` file:
             - MARTIN
             - PAUL
             - VALENTIN       
-
-* `zookeeper:` Must be filled with the zookeeper's quorum of your target cluster. 
-
-   Note this parameter may be missing. In such case, you will need to provide the `--zookeeper` parameter on the command line.
-
-* `znodeParent:` Must match the value of the property `zookeeper.znode.parent` in `hbase-site.xml`. Should be `/hbase` in most case, `/hbase-unsecure` on some HDP cluster.
-
-   This parameter may also be missing. In such case, it will default to `/hbase`. You may also provide this value as a command line option.
 
 * `namespaces:` This tag introduce a list of namespaces, each one with a `name:` attribute and hosting one or several tables, under the `tables:` attribute
  
@@ -132,11 +122,27 @@ WARNING: All hexadecimal letter (A-F) must be upper case!
 
 When launching the jdchtable command you may provide some optional parameters:
 
-* `--zookeeper` parameter will allow to override the corresponding value in the `description.yml` file.
-
-* `--znodeParent` parameter will allow to override the corresponding value in the `description.yml` file.
-
 * `--defaultState` parameter will allow setting of all `state` value which are not explicitly defined. See below 
+
+* `--configFile` parameter allow an Hadoop properties configuration file (such as hdfs-site.xml) to be added to the default set. This parameters can occur several times on the command line
+
+* `--principal` parameter allow to specify a principal for Kerberos authentication. If present, `--keytab` parameter must also be defined.
+
+* `--keytab` parameter allow to specify a keytab for Kerberos authentication. If present, `--principal` parameter must also be defined.
+
+* `--clientRetries` parameter allow to specify the number of connection attempts before failure (default: 6)
+
+* `--dumpConfigFile` Debuging purpose: All HBaseConfiguration will be dumped in this file
+
+### Kerberos secured cluster
+
+In the case your Hadoop cluster is protected by Kerberos, you have two methods to provide authentication.
+
+* Using the --principal and --keytab parameter just decribed.
+
+* Issue a kinit command before launching jdchtable. (You then can check your ticket with the klist command).
+
+In both case, the operation will be performed on behalf of the owner of the ticket. Ensure this user has got sufficient access privileges on HBase.
 
 ### ColumnFamily, Table and namespace deletion
 
@@ -179,17 +185,15 @@ Will remove all object created by our previous example.
 ***
 ## Ansible integration
 
-With its idempotence property, jdchtable is very easy to be orchestrated by usual DevOps tools like Chef, Puppet or Ansible.
+With its idempotency property, jdchtable is very easy to be orchestrated by usual DevOps tools like Chef, Puppet or Ansible.
 
 You will find an Ansible role [at this location](http://github.com/BROADSoftware/bsx-roles/tree/master/hadoop/jdchtable).
 
 This role can be used as following;
 	
-	- hosts: zookeepers
-	
 	- hosts: sr1
 	  vars:
-	    jdchtable_rpm_url: https://github.com/BROADSoftware/jdchtable/releases/download/v0.1.1/jdchtable_cdh552-0.1.1-1.noarch.rpm
+	    jdchtable_rpm_url: https://github.com/BROADSoftware/jdchtable/releases/download/v0.2.0/jdchtable-0.2.0-1.noarch.rpm
 	    myDescription:
 	      namespaces: 
 	      - name: testapp1
@@ -203,11 +207,9 @@ This role can be used as following;
 	            properties: 
 	              cacheBloomsOnWrite: true
 	              compressionType: NONE
-    
 	  roles:
-	  - { role: hadoop/jdchtable, jdchtable_description: "{{myDescription}}" }
+	  	- { role: hadoop/jdchtable, jdchtable_description: "{{myDescription}}" }
   
-> Note `- hosts: zookeepers` at the beginning, which force ansible to grab info about the hosts in the [zookeepers] group, to be able to fulfill this info into jdchtable configuration. Of course, such a group must be defined in the inventory. 
 
 ***
 ## Build

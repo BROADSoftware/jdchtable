@@ -20,7 +20,7 @@ plugins {
   id 'nebula.ospackage' version '3.4.0'
 }
 
-defaultTasks 'all'
+defaultTasks 'rpm'
 
 
 apply plugin: 'java'
@@ -78,19 +78,6 @@ task uberJar(type: Jar) {
 }
 
 
-//create a single Jar with all dependencies
-task fatJar(type: Jar) {
-	manifest {
-        attributes 'Implementation-Title': 'jdchtable', 
-        	'Implementation-Version': version,
-        	'Main-Class': 'com.kappaware.jdchtable.Main'
-    }
-    baseName = fatJarBaseName
-    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    with jar
-}
-
-
 task rpm(type: Rpm) {
 	summary 'HBase table creation tool'
 	packageName rpmBaseName
@@ -102,11 +89,10 @@ task rpm(type: Rpm) {
 	release '1'
 	packageDescription 'jdchbase is an HBase admin tool allowing idempotency on table definition.'
     
-   	from(fatJar.outputs.files) {
+   	from(uberJar.outputs.files) {
 	    into '/opt/jdchtable'
 	    user 'root'
 		group 'root'
-		//rename "${fatJarBaseName}(.+).jar", "${fatJarBaseName}.jar"
 	    fileMode 0644
     }
     
@@ -116,38 +102,6 @@ task rpm(type: Rpm) {
     
 }
 
-List variations = [ 
-	[ name: "hdp24", hbaseVersion: "1.1.2", hadoopVersion: "2.7.1"  ],	
-	[ name: "cdh552", hbaseVersion: "1.0.0", hadoopVersion: "2.6.0" ]
-]
-	
 
-for (cf in variations) {
-	tasks.create(name: "fatJar_${cf.name}", type: GradleBuild) {
-    	startParameter = project.getGradle().getStartParameter().newInstance()
-	  	startParameter.projectProperties += [hbaseVersion: "${cf.hbaseVersion}"]
-	  	startParameter.projectProperties += [hadoopVersion: "${cf.hadoopVersion}"]
-	  	startParameter.projectProperties += [fatJarBaseName: "jdchtable_${cf.name}"]
-	  	//println startParameter.projectProperties
-	    tasks = ['fatJar','eclipse']
-	}
-
-	tasks.create(name: "rpm_${cf.name}", type: GradleBuild) {
-    startParameter = project.getGradle().getStartParameter().newInstance()
-	  	startParameter.projectProperties += [hbaseVersion: "${cf.hbaseVersion}"]
-	  	startParameter.projectProperties += [hadoopVersion: "${cf.hadoopVersion}"]
-	  	startParameter.projectProperties += [fatJarBaseName: "jdchtable_${cf.name}"]
-	  	startParameter.projectProperties += [rpmBaseName: "jdchtable_${cf.name}"]
-  		//println startParameter.projectProperties
-    	tasks = ['rpm']
-	}
-}
-
-task all(type: GradleBuild) {
-  tasks =  [
-  	'rpm_hdp24',
-  	'rpm_cdh552'
-  ]
-}
 
 

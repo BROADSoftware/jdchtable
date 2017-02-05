@@ -6,9 +6,8 @@
 # Set the log configuration file
 JOPTS="$JOPTS -Dlog4j.configuration=file:/etc/jdchtable/log4j.xml"
 
+# Dump configuration, for debugging
+OPTS="$OPTS --dumpConfigFile /tmp/jdchtable-conf.txt"
 
-# Set zookeeper quorum
-# OPTS="$OPTS --zookeeper 'zk1:2181,zk2:2181,zk3:2181'"
-
-
-
+# Set kerberos principal and keytab (If you don't like 'kinit')
+# OPTS="$OPTS --principal hbase-mycluster --keytab /etc/security/keytabs/hbase.headless.keytab
