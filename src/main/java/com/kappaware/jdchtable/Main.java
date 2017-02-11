@@ -80,6 +80,11 @@ public class Main {
 			Utils.dumpConfiguration(config, jdcConfiguration.getDumpConfigFile());
 		}
 		if (Utils.hasText(jdcConfiguration.getKeytab()) && Utils.hasText(jdcConfiguration.getPrincipal())) {
+			// Check if keytab file exists and is readable
+			File f = new File(jdcConfiguration.getKeytab());
+			if(! f.canRead()) {
+				throw new ConfigurationException(String.format("Unable to read keytab file: '%s'", jdcConfiguration.getKeytab()));
+			}
 			UserGroupInformation.setConfiguration(config);
 			if (!UserGroupInformation.isSecurityEnabled()) {
 				throw new ConfigurationException("Security is not enabled in core-site.xml while Kerberos principal and keytab are provided.");

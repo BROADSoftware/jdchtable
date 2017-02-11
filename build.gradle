@@ -30,14 +30,12 @@ repositories {
     jcenter()
 }
 
-defaultTasks 'all'
-
 // Refer to https://issues.gradle.org/browse/GRADLE-1010
-eclipseJdt << {
+eclipseJdt.doLast( {
 	File f = file('.settings/org.eclipse.core.resources.prefs')
    	f.write('eclipse.preferences.version=1\n')
    	f.append('encoding/<project>=UTF-8')
-}
+})
 	
 
 configurations {

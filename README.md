@@ -134,16 +134,6 @@ When launching the jdchtable command you may provide some optional parameters:
 
 * `--dumpConfigFile` Debuging purpose: All HBaseConfiguration will be dumped in this file
 
-### Kerberos secured cluster
-
-In the case your Hadoop cluster is protected by Kerberos, you have two methods to provide authentication.
-
-* Using the --principal and --keytab parameter just decribed.
-
-* Issue a kinit command before launching jdchtable. (You then can check your ticket with the klist command).
-
-In both case, the operation will be performed on behalf of the owner of the ticket. Ensure this user has got sufficient access privileges on HBase.
-
 ### ColumnFamily, Table and namespace deletion
 
 All namespaces, tables or columnFamilies not described in the `description.yml` file will be left untouched.
@@ -181,6 +171,17 @@ And:
 Will remove all object created by our previous example.
 
 > Note, as a security, no cascading deletion from namespace to table will be performed. Deletion of a namespace can only be effective if all hosted table are explicitly deleted. 
+
+***
+## Kerberos secured cluster
+
+In the case your Hadoop cluster is protected by Kerberos, you have two methods to provide authentication.
+
+* Using the `--principal` and `--keytab` parameters.
+
+* Issue a `kinit` command before launching jdchtable. (You then can check your ticket with the `klist` command).
+
+In both case, the operation will be performed on behalf of the owner of the ticket. Ensure this user has got sufficient access privileges on HBase.
 
 ***
 ## Ansible integration
