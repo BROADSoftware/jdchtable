@@ -59,11 +59,15 @@ public class Description {
 	static public class Namespace {
 		public String name;
 		public State state;
+		public Boolean managed;
 		public List<Table> tables;
 		
 		void polish(State defaultState) throws DescriptionException {
 			if(this.state == null) {
 				this.state = defaultState;
+			}
+			if(this.managed == null) {
+				this.managed = true;
 			}
 			if(this.tables != null) {
 				for(Table t : this.tables) {

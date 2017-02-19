@@ -74,14 +74,23 @@ public class Engine {
 				if (nsDescByName.containsKey(ns.name)) {
 					if (Utils.DEFAULT_NS.equals(ns.name)) {
 						throw new DescriptionException("Can't delete 'default' namespace");
+					} else {
+						if (ns.managed) {
+							namespaceToDelete.add(ns.name);
+						} else {
+							throw new DescriptionException(String.format("Namespace '%s' exits and can't delete it as not defined as managed.", ns.name));
+						}
 					}
-					namespaceToDelete.add(ns.name);
 				}
 			} else {
 				if (!nsDescByName.containsKey(ns.name)) {
-					log.info(String.format("Will create namespace '%s'", ns.name));
-					nbrModif++;
-					hbAdmin.createNamespace(NamespaceDescriptor.create(ns.name).build());
+					if (ns.managed) {
+						log.info(String.format("Will create namespace '%s'", ns.name));
+						nbrModif++;
+						hbAdmin.createNamespace(NamespaceDescriptor.create(ns.name).build());
+					} else {
+						throw new DescriptionException(String.format("Namespace '%s' does not exist and can't create it as not defined as managed.", ns.name));
+					}
 				}
 			}
 		}
@@ -189,7 +198,7 @@ public class Engine {
 			for (int i = 0; i < 500; i++) {
 				status = this.hbAdmin.getAlterStatus(table.tableName);
 				if ((i % 10) == 0 || status.getFirst() == 0) {
-					log.info(String.format("Table '%s'. %d region(s) on %d was successfully updated", table.tableName.toString(),  status.getSecond() - status.getFirst(), status.getSecond()));
+					log.info(String.format("Table '%s'. %d region(s) on %d was successfully updated", table.tableName.toString(), status.getSecond() - status.getFirst(), status.getSecond()));
 				}
 				if (status.getFirst() == 0) {
 					break;
@@ -200,7 +209,7 @@ public class Engine {
 			if (status.getFirst() > 0) {
 				throw new DescriptionException(String.format("Table '%s': Unable to update in less than 500s. Still %d region remaining", table.tableName.toString(), status.getFirst()));
 			}
-			if(wasEnabled) {
+			if (wasEnabled) {
 				this.hbAdmin.enableTable(table.tableName);
 			}
 		}
@@ -249,7 +258,7 @@ public class Engine {
 				}
 				this.hbAdmin.createTable(tDesc, splitKeys);
 			} else {
-				byte[][] r = Bytes.split(Bytes.toBytesBinary(table.presplit.startKey), Bytes.toBytesBinary(table.presplit.endKey), true, table.presplit.numRegion -1);
+				byte[][] r = Bytes.split(Bytes.toBytesBinary(table.presplit.startKey), Bytes.toBytesBinary(table.presplit.endKey), true, table.presplit.numRegion - 1);
 				byte[][] splitKeys = Arrays.copyOfRange(r, 1, table.presplit.numRegion);
 				this.hbAdmin.createTable(tDesc, splitKeys);
 			}

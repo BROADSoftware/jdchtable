@@ -172,6 +172,36 @@ Will remove all object created by our previous example.
 
 > Note, as a security, no cascading deletion from namespace to table will be performed. Deletion of a namespace can only be effective if all hosted table are explicitly deleted. 
 
+## Unmanaged namespace
+
+sometime, we don't want namespaces to be managed (created/deleted) by jdchtable. But, we need to refer them, in order to be able to define table in it.
+
+In such case, one may provide a `managed: no` flag:
+
+     namespaces: 
+      - name: testapp1
+        managed: no
+        tables:
+        - ....
+
+When a namespace is not managed by jdchtable, the following apply:
+
+* If `state: present`, then the namespace must exists on jdchtable execution. Otherwise, an error is generated.
+
+* If `state: absent`, then the namespace must not exists on jdchtable execution. Otherwise, an error is generated.
+
+This is useful for example to be able to create tables in the `default` namespace:
+
+     namespaces: 
+      - name: default
+        managed: no
+        state: present
+        tables:
+        - ....
+ 
+ Note also the `state: present` attribute, which prevent an error to be generated if `--defaultState` is set to `absent`.
+          
+          
 ***
 ## Kerberos secured cluster
 
